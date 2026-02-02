@@ -55,8 +55,46 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: 复制/生成 .config
+      - name: 加载自定义配置
         working-directory: immortalwrt
         run: |
-          # 先生成默认 config
-          make defconfig V=s
+          [ -e files ] || mkdir files
+          [ -e ../custom-files/r2s-plus.config ] && cat ../custom-files/r2s-plus.config >> .config
+          make defconfig
+
+      - name: 执行自定义脚本
+        working-directory: immortalwrt
+        run: |
+          chmod +x ../custom-files/customize.sh
+          /bin/bash ../custom-files/customize.sh
+
+      - name: 下载软件包
+        working-directory: immortalwrt
+        run: |
+          make download -j8
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
+
+      - name: 编译固件
+        working-directory: immortalwrt
+        run: |
+          echo -e "$(nproc) thread compile"
+          make -j$(nproc) || make -j1 V=s
+
+      - name: 整理固件文件
+        id: organize
+        working-directory: immortalwrt
+        run: |
+          mkdir -p firmware
+          # 查找生成的固件文件 (img.gz) 并移动到 firmware 目录
+          find bin/targets/rockchip/armv8 -name "*sysupgrade.img.gz" -exec cp {} firmware/ \;
+          cd firmware
+          echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: 上传固件
+        uses: actions/upload-artifact@v4
+        if: steps.organize.outputs.status == 'success'
+        with:
+          name: ImmortalWrt-R2S-Plus-Firmware
+          path: ${{ env.FIRMWARE }}
