@@ -49,6 +49,14 @@ jobs:
           ref: master
           fetch-depth: 1
 
+      - name: 添加外部插件源
+        working-directory: immortalwrt
+        run: |
+          # 添加 OpenClash 官方源
+          echo 'src-git openclash https://github.com/vernesong/OpenClash' >> feeds.conf.default
+          # 添加 Passwall 依赖源 (可选，如果需要 Passwall)
+          # echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >> feeds.conf.default
+
       - name: 更新 feeds
         working-directory: immortalwrt
         run: |
@@ -56,16 +64,16 @@ jobs:
           ./scripts/feeds install -a
 
       - name: 加载自定义配置
-        working-directory: immortalwrt
         run: |
           [ -e files ] || mkdir files
-          [ -e ../custom-files/r2s-plus.config ] && cat ../custom-files/r2s-plus.config >> .config
+          [ -e custom-files/r2s-plus.config ] && cat custom-files/r2s-plus.config >> immortalwrt/.config
+          cd immortalwrt
           make defconfig
 
       - name: 执行自定义脚本
-        working-directory: immortalwrt
         run: |
-          chmod +x ../custom-files/customize.sh
+          chmod +x custom-files/customize.sh
+          cd immortalwrt
           /bin/bash ../custom-files/customize.sh
 
       - name: 下载软件包
@@ -87,8 +95,21 @@ jobs:
         run: |
           mkdir -p firmware
           # 查找生成的固件文件 (img.gz) 并移动到 firmware 目录
+          # 重点提取 ext4 格式固件，因为 eMMC 启动推荐使用 ext4
           find bin/targets/rockchip/armv8 -name "*sysupgrade.img.gz" -exec cp {} firmware/ \;
           cd firmware
+          
+          # 尝试重命名文件以匹配 FriendlyELEC 的 eFlasher 习惯 (可选)
+          # 对于 Rockchip 平台，OpenWrt 生成的 sysupgrade.img.gz 实际上已经是一个包含了 Bootloader、Kernel 和 Rootfs 的完整磁盘镜像
+          # 它可以直接写入 SD 卡或 eMMC 启动。
+          # "sysupgrade" 命名只是 OpenWrt 的惯例，表示它可以通过 Web 界面升级。
+          # 但为了明确它是全量镜像，我们将其重命名为 combined。
+          for file in *ext4-sysupgrade.img.gz; do
+            if [ -e "$file" ]; then
+              mv "$file" "${file/sysupgrade/combined}"
+            fi
+          done
+          ls -lh
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "status=success" >> $GITHUB_OUTPUT
 
