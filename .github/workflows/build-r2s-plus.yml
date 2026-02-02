@@ -80,6 +80,9 @@ jobs:
 
       - name: 执行自定义脚本
         run: |
+          echo "Debug: Checking file existence"
+          ls -l build-config/custom-files/customize.sh || echo "File not found at expected path"
+          
           chmod +x build-config/custom-files/customize.sh
           cd immortalwrt
           /bin/bash ../build-config/custom-files/customize.sh
