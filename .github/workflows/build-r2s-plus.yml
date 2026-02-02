@@ -43,6 +43,8 @@ jobs:
 
       - name: 检出当前仓库
         uses: actions/checkout@v4
+        with:
+          path: build-config
 
       - name: 克隆 immortalwrt 仓库
         uses: actions/checkout@v4
@@ -51,6 +53,9 @@ jobs:
           path: immortalwrt
           ref: master
           fetch-depth: 1
+
+      - name: 调试文件系统
+        run: ls -R
 
       - name: 添加外部插件源
         working-directory: immortalwrt
@@ -69,15 +74,15 @@ jobs:
       - name: 加载自定义配置
         run: |
           [ -e files ] || mkdir files
-          [ -e custom-files/r2s-plus.config ] && cat custom-files/r2s-plus.config >> immortalwrt/.config
+          [ -e build-config/custom-files/r2s-plus.config ] && cat build-config/custom-files/r2s-plus.config >> immortalwrt/.config
           cd immortalwrt
           make defconfig
 
       - name: 执行自定义脚本
         run: |
-          chmod +x custom-files/customize.sh
+          chmod +x build-config/custom-files/customize.sh
           cd immortalwrt
-          /bin/bash ../custom-files/customize.sh
+          /bin/bash ../build-config/custom-files/customize.sh
 
       - name: 下载软件包
         working-directory: immortalwrt
