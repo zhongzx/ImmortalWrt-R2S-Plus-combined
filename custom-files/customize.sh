@@ -1,6 +1,6 @@
 #!/bin/sh
 # 修改默认 IP
-sed -i 's/192.168.1.1/192.169.2.1/g' package/base-files/files/bin/config_generate
+sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
 
 # 设置 root 默认密码为 password
 PASSWD=$(openssl passwd -1 "password")

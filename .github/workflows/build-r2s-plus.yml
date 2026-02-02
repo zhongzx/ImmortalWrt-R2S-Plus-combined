@@ -65,6 +65,8 @@ jobs:
         run: |
           # 添加 OpenClash 官方源
           echo 'src-git openclash https://github.com/vernesong/OpenClash' >> feeds.conf.default
+          # 添加 iStore 商店源
+          echo 'src-git istore https://github.com/linkease/istore;main' >> feeds.conf.default
           # 添加 Passwall 依赖源 (可选，如果需要 Passwall)
           # echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >> feeds.conf.default
 
