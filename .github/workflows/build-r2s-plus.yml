@@ -1,0 +1,62 @@
+name: Build ImmortalWrt for R2S Plus Combined
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: 设置 Git 变量
+        run: |
+          echo "DATE=$(date +'%Y%m%d-%H%M')" >> $GITHUB_ENV
+          echo "RELEASE_TAG=R2SPlus-ImmortalWrt-${{ github.run_number }}-${DATE}" >> $GITHUB_ENV
+
+      - name: 释放磁盘空间（包含 purge 且容错）
+        run: |
+          sudo apt-get update || true
+          sudo apt-get purge dotnet* || true
+          sudo apt-get purge azure-cli* || true
+          sudo apt-get purge google-cloud-sdk* || true
+          sudo apt-get purge firefox* || true
+          sudo apt-get purge microsoft-edge* || true
+          sudo apt-get clean || true
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /usr/share/swift || true
+          sudo rm -rf /usr/share/miniconda || true
+          sudo rm -rf /usr/lib/jvm || true
+          sudo rm -rf /var/lib/apt/lists/* || true
+          sudo rm -rf /usr/local/share/boost || true
+          sudo rm -rf /usr/local/share/powershell || true
+          df -h
+
+      - name: 安装编译依赖
+        run: |
+          sudo apt-get update || true
+          sudo apt-get install -y build-essential clang flex g++ gawk gcc-multilib \
+            gettext git libncurses-dev libssl-dev python3-distutils python3-pyelftools \
+            rsync unzip zlib1g-dev file wget python3 python3-pip pipx qemu-utils \
+            make openssl libssl-dev wget time || true
+
+      - name: 克隆 immortalwrt 仓库
+        uses: actions/checkout@v4
+        with:
+          repository: immortalwrt/immortalwrt
+          path: immortalwrt
+          ref: master
+          fetch-depth: 1
+
+      - name: 更新 feeds
+        working-directory: immortalwrt
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: 复制/生成 .config
+        working-directory: immortalwrt
+        run: |
+          # 先生成默认 config
+          make defconfig V=s
