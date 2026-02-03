@@ -1,0 +1,42 @@
+name: Manual Release (From Artifact)
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Build Workflow Run ID (从 Actions 运行记录的 URL 中获取，例如 13123456789)'
+        required: true
+      tag_name:
+        description: 'Release Tag Name (例如 v1.0.0-manual)'
+        required: true
+      description:
+        description: 'Release Description (Release 说明)'
+        required: false
+        default: '手动发布的固件'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download Artifact
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          run_id: ${{ inputs.run_id }}
+          name: ImmortalWrt-R2S-Plus-Firmware
+          path: firmware
+
+      - name: List Files
+        run: ls -R firmware
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: firmware/*
+          body: |
+            ${{ inputs.description }}
+            
+            基于构建 ID: ${{ inputs.run_id }}
